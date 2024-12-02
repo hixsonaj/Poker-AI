@@ -7,41 +7,45 @@ from pypokerengine.utils.card_utils import gen_cards, estimate_hole_card_win_rat
 NB_SIMULATION = 1000
 
 class Goated(BasePokerPlayer):
+
+    
+
     def declare_action(self, valid_actions, hole_card, round_state):
         community_card = round_state['community_card']
+        pot_size = round_state['pot']['main']['amount']
+        # active_players = self.__get_active_players(round_state)
+
+        seats = round_state['seats']
+        active_players = sum(1 for seat in seats if seat['state'] in ['participating', 'allin'])
+
         win_rate = estimate_hole_card_win_rate(
-                nb_simulation=NB_SIMULATION,
-                nb_player=self.nb_player,
-                hole_card=gen_cards(hole_card),
-                community_card=gen_cards(community_card)
-                )
+            nb_simulation=NB_SIMULATION,
+            nb_player=self.nb_player,
+            hole_card=gen_cards(hole_card),
+            community_card=gen_cards(community_card)
+        )
         
-        print(str(win_rate) + " BRUH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        choice = self.__choice_action(valid_actions)
-        amount = choice["amount"]
-        print(amount)
+        # Default action is FOLD (index 0), overwritten later if better options exist
+        action = valid_actions[0]['action']
+        amount = valid_actions[0].get('amount', 0)
+        
+        # Check the win rate and decide the action
+        if win_rate >= 1.1 / active_players:
+            # Choose RAISE if win rate is high enough
+            raise_amount = max(int(pot_size), valid_actions[2]['amount']['min'])
+            raise_amount = min(raise_amount, valid_actions[2]['amount']['max'])  # Ensure valid range
+            action = valid_actions[2]['action']
+            amount = raise_amount
+        elif win_rate >= 0.8 / active_players:
+            # Choose CALL if win rate is moderate
+            action = valid_actions[1]['action']
+            amount = valid_actions[1]['amount']
+        elif valid_actions[1]['amount'] == 0:
+            # If FOLD action is essentially CHECK (amount is 0), choose it
+            action = valid_actions[1]['action']
+            amount = valid_actions[1]['amount']
 
-
-        if win_rate >= 2.0 / self.nb_player:
-            action = valid_actions[2]
-            amount = 10
-        elif win_rate >= 1.0 / self.nb_player:
-            action = valid_actions[1]  # fetch CALL action info
-        elif amount == 0:
-            action = valid_actions[1]
-        else:
-            action = valid_actions[0]
-
-
-
-        # if win_rate >= 1.0 / self.nb_player:
-        #     action = valid_actions[1]  # fetch CALL action info
-        # elif win_rate >= 2.0 / self.nb_player:
-        #     action = valid_actions[2]
-        #     amount = 10
-        # else:
-        #     action = valid_actions[0]  # fetch FOLD action info
-        return action['action'], amount
+        return action, amount
 
     def receive_game_start_message(self, game_info):
         self.nb_player = game_info['player_num']
