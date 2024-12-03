@@ -3,7 +3,7 @@ from default_agents import FishPlayer, FoldMan, RandomPlayer, HonestPlayer
 from console_player import ConsolePlayer
 from goated import Goated
 
-config = setup_config(max_round=1000, initial_stack=10000, small_blind_amount=1)
+config = setup_config(max_round=1000, initial_stack=1000, small_blind_amount=1)
 
 #Default Agents
 # config.register_player(name="Fish Player", algorithm=FishPlayer())              #Call machine
